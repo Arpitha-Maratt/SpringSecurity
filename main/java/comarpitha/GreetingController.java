@@ -1,5 +1,6 @@
 package comarpitha;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -11,17 +12,30 @@ public class GreetingController {
         return " hello";
     }
 
-    //when you dependency it automatically navigate to login page when i hit the endpoints
-    // where i can credential : in console - default security chain
+    //when you dependency it automatically navigates to login page when i hit the endpoints
+    // where I can credential : in console - default security chain
     // password will change everytime
     // logout :localhost:8080/logout
     //default authentication is form based
    //inbuilt - login and logout
-    // dis adv = wont support for rest Api because it use postman  so ----> basic Authentication
+    // dis adv = won't support for rest Api because it uses postman  so ----> basic Authentication
 
 
+    @PreAuthorize("hasRole('USER')")  // use to check authorization  before executing  a method  . You need to specify the condition that need to be true.   roles or setting in security config file
+    @GetMapping("/user")
+    public String userEndpoint(){
+        return "Hello user";
+    }
 
-    // Basic authentication
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin")
+    public String adminEndpoints(){
+        return "Hello Admin";
+    }
+
+    //@PostAuthorize = which is enforce security after a method has executed that allows you to take decision based on the result of the method
+
+
 
 
 }
