@@ -6,6 +6,10 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -38,6 +42,30 @@ public class SecurityConfig {
 
 
 
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService (){
+        UserDetails user1 = User.withUsername("user1")
+                .password("{noop}password1")  // noop = safe and clean
+                .roles("USER")
+                .build();
+
+        UserDetails admin = User.withUsername("admin")
+                .password("{noop}adminPassword")
+                .roles("ADMIN")
+                .build();
+
+        return  new InMemoryUserDetailsManager(user1,admin);  // inMemoryUserDetailManager is implementation of UserDetailsService
+        // InMemoryUserDetailsManager  will manage the user details in memory and hence it name is in memory user details
+
+
+        // Here we made use of in memory authentication to create multiple users and we are
+        // managing this in the memory
+        //information is right now not persistent in database are straight away  making use of  to create and store the user information
+
+        // InMemoryUserDetailsManager will need an object of type user details .And here you can construct the user details  object
+        // using {noop} it is not a good production product  --> secure password
     }
 
 }
