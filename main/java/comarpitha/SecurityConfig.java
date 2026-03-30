@@ -1,17 +1,24 @@
 package comarpitha;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.sql.DataSource;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -20,12 +27,21 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity  //enable web security features in the spring boot application and giving liberatity for customize the security
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    @Autowired
+    DataSource dataSource;
+
     @Bean // to marks as a bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws  Exception{
-        http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());  // any request application will get authenticated by default
+        http.authorizeHttpRequests((requests) ->
+                requests.requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated());  // any request application will get authenticated by default
         http.sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));  // DISABLE FORM BASED = cookies will disable
 //      http.formLogin(withDefaults()); // form based
         http.httpBasic(withDefaults());  // http basic with default and  this line config basic authentication
+        http.headers(headers ->
+                headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)); // enabled the framework
+        http.csrf(csrf ->csrf.disable()); // disabled crsf
         return http.build();  // return security object type
 
 
@@ -48,16 +64,29 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService (){
         UserDetails user1 = User.withUsername("user1")
-                .password("{noop}password1")  // noop = safe and clean
+                .password(passwordEncoder().encode("password1"))  // noop = safe and clean
                 .roles("USER")
                 .build();
 
         UserDetails admin = User.withUsername("admin")
-                .password("{noop}adminPassword")
+                .password(passwordEncoder().encode("adminPassword"))
                 .roles("ADMIN")
                 .build();
 
-        return  new InMemoryUserDetailsManager(user1,admin);  // inMemoryUserDetailManager is implementation of UserDetailsService
+        // replace implementation  in memory database details manager with the jdbc user details manager
+        // if you this give eror user detials not available
+        // so we need schema : structure of the database
+        //
+        JdbcUserDetailsManager userDetailsManager =
+                new JdbcUserDetailsManager(dataSource);  // use in database
+        userDetailsManager.createUser(user1);
+        userDetailsManager.createUser(admin);
+
+        return  userDetailsManager;
+
+
+
+//        return  new InMemoryUserDetailsManager(user1,admin);  // inMemoryUserDetailManager is implementation of UserDetailsService
         // InMemoryUserDetailsManager  will manage the user details in memory and hence it name is in memory user details
 
 
@@ -67,6 +96,10 @@ public class SecurityConfig {
 
         // InMemoryUserDetailsManager will need an object of type user details .And here you can construct the user details  object
         // using {noop} it is not a good production product  --> secure password
+    }
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return  new BCryptPasswordEncoder(); // inbuilt
     }
 
 }
